@@ -4,23 +4,19 @@
 #include "exception.hpp"
 #include <cstdio>
 namespace sjtu {
-	//ÎÄ¼şÖ¸Õë
+	//æ–‡ä»¶æŒ‡é’ˆ
 	FILE* bp_file = NULL;
-	//bptreeµØÖ·
+	//bptreeåœ°å€
 	constexpr char _address[100] = "Tomoyo_no_bptree";
 
 	template <class Key, class Value, class Compare = std::less<Key> >
 	class BTree {
 	private:
 		// Your private members go here
-//ÕâÊÇBPtreeµÄÖ÷ÒªĞÅÏ¢£º		
-		const int BLOCK_SIZE = 4096;
-		const int HEAD_SIZE = sizeof(Block_Head);
-		const int index_node_len = (BLOCK_SIZE - HEAD_SIZE) / sizeof(Block_index_node) - 1;
-		const int leaf_node_len = (BLOCK_SIZE - HEAD_SIZE) / (sizeof(Key) + sizeof(Value)) - 1;
 
-//ÎÄ¼ş²¿·Ö
-		//ÎÄ¼şÍ·
+
+//æ–‡ä»¶éƒ¨åˆ†
+		//æ–‡ä»¶å¤´
 		class BPLUSFILES_INFO
 		{
 		public:
@@ -32,11 +28,11 @@ namespace sjtu {
 		};
 
 
-        //ÎÄ¼şÍ·ÉùÃ÷
+		//æ–‡ä»¶å¤´å£°æ˜
 		BPLUSFILES_INFO bpfile_info;
-		
-//¿éµÄ¿ªÍ·²¿·Ö
-        //ÕâÊÇblockµÄÍ·£¬´æ´¢¸Ã¿éµÄ»ù±¾ĞÅÏ¢£¬ÈçÊÇ·ñÎªÒ¶×Ó¡¢¿éÄÚÓĞ¶àÉÙÊı¾İµÈ£¬£¬indexºÍleaf¹²ÓÃÕâÒ»ÖÖhead
+
+		//å—çš„å¼€å¤´éƒ¨åˆ†
+				//è¿™æ˜¯blockçš„å¤´ï¼Œå­˜å‚¨è¯¥å—çš„åŸºæœ¬ä¿¡æ¯ï¼Œå¦‚æ˜¯å¦ä¸ºå¶å­ã€å—å†…æœ‰å¤šå°‘æ•°æ®ç­‰ï¼Œï¼Œindexå’Œleafå…±ç”¨è¿™ä¸€ç§head
 		class Block_Head
 		{
 		public:
@@ -48,45 +44,49 @@ namespace sjtu {
 			int _right = 0;
 		};
 
-//Ö÷Ìå²¿·Ö£ºË÷Òı»òÊı¾İ
-		//ÕâÊÇindexµÄ¹¹³É³É·Ö
+		//ä¸»ä½“éƒ¨åˆ†ï¼šç´¢å¼•æˆ–æ•°æ®
+				//è¿™æ˜¯indexçš„æ„æˆæˆåˆ†
 		struct Block_index_node
 		{
 			int _child = 0;
 			Key _key;
 		};
-		//leafµÄ¹¹³É³É·Ö¾ÍÊÇpair
+		//leafçš„æ„æˆæˆåˆ†å°±æ˜¯pair
 
 
-		//ÕâÊÇindexµÄÕûÌå³É·Ö
-		class Block_index 
+		//è¿™æ˜¯indexçš„æ•´ä½“æˆåˆ†
+		class Block_index
 		{
 		public:
 			Block_index_node  inodes[index_node_len];
 		};
-		//ÕâÊÇleafµÄÕûÌå²¿·Ö
-		class Block_leaf 
+		//è¿™æ˜¯leafçš„æ•´ä½“éƒ¨åˆ†
+		class Block_leaf
 		{
 		public:
 			pair<Key, Value>  inodes[leaf_node_len];
 		};
 
+		//è¿™æ˜¯BPtreeçš„æ‚é¡¹æ•°æ®ä¿¡æ¯ï¼š		
+		const int BLOCK_SIZE = 4096;
+		const int HEAD_SIZE = sizeof(Block_Head);
+		const int index_node_len = (BLOCK_SIZE - HEAD_SIZE) / sizeof(Block_index_node);
+		const int leaf_node_len = (BLOCK_SIZE - HEAD_SIZE) / (sizeof(Key) + sizeof(Value));
 
 
 
-
-//ÄÚÖÃº¯Êı²¿·Ö£º
-//ÕâÊÇbptreeµÄ¹Ø¼ü£¬Ğ´²»ºÃÒª±»Öú½Ì´¦ÀíµÄ£¡£¡£¡²À¤¤¤Ç¤¹
-//îBˆ¤Ã¤Æ¤Í£¡£¡£¡
-        //¶ÁÈ¡¿é£ºÏÈ½«Ö¸ÕëÒÆ¶¯ÖÁÄ¿±ê²¿·Ö£¬ÔÙ½øĞĞ¹Ì¶¨³¤¶È¶ÁÈ¡
+		//å†…ç½®å‡½æ•°éƒ¨åˆ†ï¼š
+		//è¿™æ˜¯bptreeçš„å…³é”®ï¼Œå†™ä¸å¥½è¦è¢«åŠ©æ•™å¤„ç†çš„ï¼ï¼ï¼æ€–ã„ã§ã™
+		//é ‘å¼µã£ã¦ã­ï¼ï¼ï¼
+				//è¯»å–å—ï¼šå…ˆå°†æŒ‡é’ˆç§»åŠ¨è‡³ç›®æ ‡éƒ¨åˆ†ï¼Œå†è¿›è¡Œå›ºå®šé•¿åº¦è¯»å–
 		template <class T>
 		static void readin(T info_container, int info_container_size, int pos)
 		{
-			fseek(bp_file,info_container_size * pos, SEEK_SET);
+			fseek(bp_file, info_container_size * pos, SEEK_SET);
 			fread(info_container, info_container_size, 1, bp_file);
 		}
 
-		//ÊäÈë¿é£ºÏÈ½«Ö¸ÕëÒÆ¶¯µ½Ö¸¶¨Î»ÖÃ£¬ÔÙÊäÈë£¬²¢ÓÃfflush±£Ö¤ÊäÈëÈ«²¿½øÈëÎÄ¼ş£¬·ÀÖ¹ÎÄ¼ş¹Ø±Õ¶øµ¼ÖÂ
+		//è¾“å…¥å—ï¼šå…ˆå°†æŒ‡é’ˆç§»åŠ¨åˆ°æŒ‡å®šä½ç½®ï¼Œå†è¾“å…¥ï¼Œå¹¶ç”¨fflushä¿è¯è¾“å…¥å…¨éƒ¨è¿›å…¥æ–‡ä»¶ï¼Œé˜²æ­¢æ–‡ä»¶å…³é—­è€Œå¯¼è‡´
 		template <class T>
 		static void writein(T info_container, int info_container_size, int pos)
 		{
@@ -95,7 +95,7 @@ namespace sjtu {
 			fflush(bp_file);
 		}
 
-		//Õû¿é¸üĞÂÊ÷µÄĞÅÏ¢£º´ÓÄÚ´æµ½Íâ´æ
+		//æ•´å—æ›´æ–°æ ‘çš„ä¿¡æ¯ï¼šä»å†…å­˜åˆ°å¤–å­˜
 		void renew_info()
 		{
 			fseek(bp_file, 0, SEEK_SET);
@@ -104,7 +104,7 @@ namespace sjtu {
 			writein(info_container, BLOCK_SIZE, 0);
 		}
 
-		//ÉêÇëÎÄ¼şÄÚ¿Õ¼ä£¬²¢°ÑÉêÇëµÄ¿ÉÓÃµØÖ·ÓÃ0 memset
+		//ç”³è¯·æ–‡ä»¶å†…ç©ºé—´ï¼Œå¹¶æŠŠç”³è¯·çš„å¯ç”¨åœ°å€ç”¨0 memset
 		int apply_memory()
 		{
 			++bpfile_info.block_num;
@@ -114,7 +114,7 @@ namespace sjtu {
 			return bpfile_info.block_num - 1;
 		}
 
-		//ÉêÇëheadºÍindex£¬²¢½øĞĞ³õÊ¼»¯£¬·µ»Ø¸ÃµØÖ·
+		//ç”³è¯·headå’Œindexï¼Œå¹¶è¿›è¡Œåˆå§‹åŒ–ï¼Œè¿”å›è¯¥åœ°å€
 		int apply_block_index(int _parent)
 		{
 			auto node_pos = apply_memory();
@@ -130,7 +130,7 @@ namespace sjtu {
 			return node_pos;
 		}
 
-		//ÉêÇëheadºÍleaf£¬²¢½øĞĞ³õÊ¼»¯£¬·µ»Ø¸ÃµØÖ·
+		//ç”³è¯·headå’Œleafï¼Œå¹¶è¿›è¡Œåˆå§‹åŒ–ï¼Œè¿”å›è¯¥åœ°å€
 		int apply_block_leaf(int _parent, int _left, int _right)
 		{
 			auto node_pos = apply_memory();
@@ -148,8 +148,8 @@ namespace sjtu {
 			return node_pos;
 		}
 
-		//²åÈëĞÂË÷Òı£º
-		//ÔÚ²»³¬´óĞ¡µÄÇé¿öÏÂ£¬½«originÎ»ÖÃµÄkeyÒÔ¼°Ö®ºóµÄ¶¼ÍùºóÒÆÒ»¸ñ£¬ÔÙ°Ñnew_posµÄ_childºÍ_key·Ö±ğ·Åµ½origin¼°ËüÖ®ºóµÄÎ»ÖÃ 
+		//æ’å…¥æ–°ç´¢å¼•ï¼š
+		//åœ¨ä¸è¶…å¤§å°çš„æƒ…å†µä¸‹ï¼Œå°†originä½ç½®çš„keyä»¥åŠä¹‹åçš„éƒ½å¾€åç§»ä¸€æ ¼ï¼Œå†æŠŠnew_posçš„_childå’Œ_keyåˆ†åˆ«æ”¾åˆ°originåŠå®ƒä¹‹åçš„ä½ç½® 
 		void insert_indexnode(Block_Head& par_info, Block_index& par_data, int the_past, int new_pos, const Key& new_index)
 		{
 			++par_info.data_num;
@@ -164,7 +164,7 @@ namespace sjtu {
 			par_data.inodes[p + 1]._child = new_pos;
 		}
 
-		//°ÑÔÚÄÚ´æ´´½¨ºÃµÄheadºÍindex/leaf·ÅÈëÎÄ¼şÀï
+		//æŠŠåœ¨å†…å­˜åˆ›å»ºå¥½çš„headå’Œindex/leafæ”¾å…¥æ–‡ä»¶é‡Œ
 		template <class T>
 		static void renew_block(Block_Head* _info, T* _data, int _pos)
 		{
@@ -174,7 +174,7 @@ namespace sjtu {
 			writein(info_container, BLOCK_SIZE, _pos);
 		}
 
-		//°Ñ_posÎ»ÖÃÉÏµÄĞÅÏ¢¶ÁÈëinfo_container,ÔÙ·Ö±ğ×ªÒÆµ½headºÍdataÀï
+		//æŠŠ_posä½ç½®ä¸Šçš„ä¿¡æ¯è¯»å…¥info_container,å†åˆ†åˆ«è½¬ç§»åˆ°headå’Œdataé‡Œ
 		template <class T>
 		static void copy_block(Block_Head* _info, T* _data, int _pos)
 		{
@@ -207,26 +207,26 @@ namespace sjtu {
 				parent_pos = parent_info._pos;
 			}
 
-			if (ifparent(the_past_info)) 
+			if (ifparent(the_past_info))
 			{
 				parent_pos = the_past_info._parent;
 				copy_block(&parent_info, &parent_data, parent_pos);
 			}
 
-			
+
 			auto new_pos = apply_block_leaf(parent_pos, pos, the_past_info._right);
 			Block_Head new_info;
 			Block_leaf new_data;
 			copy_block(&new_info, &new_data, new_pos);
 
-			
+
 			auto temp_pos = the_past_info._right;
 			Block_Head temp_info;
 			Block_leaf temp_data;
 			copy_block(&temp_info, &temp_data, temp_pos);
 			temp_info._left = new_pos;
 			renew_block(&temp_info, &temp_data, temp_pos);
-			
+
 			the_past_info._right = new_pos;
 
 			int mid_pos = the_past_info.data_num >> 1;
@@ -236,10 +236,10 @@ namespace sjtu {
 				++new_info.data_num;
 			}
 			the_past_info.data_num = mid_pos;
-			
+
 			insert_indexnode(parent_info, parent_data, pos, new_pos, the_past_data.inodes[mid_pos].first);
 
-			
+
 			renew_block(&the_past_info, &the_past_data, pos);
 			renew_block(&new_info, &new_data, new_pos);
 			renew_block(&parent_info, &parent_data, parent_pos);
@@ -255,9 +255,9 @@ namespace sjtu {
 			copy_block(&the_past_info, &the_past_data, the_past_pos);
 			if (the_past_info.data_num < index_node_len) return false;
 
-			if (the_past_pos == bpfile_info.root_pos) 
+			if (the_past_pos == bpfile_info.root_pos)
 			{
-				
+
 				auto root_pos = apply_block_index(0);
 				bpfile_info.root_pos = root_pos;
 				renew_info();
@@ -277,16 +277,16 @@ namespace sjtu {
 				parent_pos = the_past_info._parent;
 				copy_block(&parent_info, &parent_data, parent_pos);
 			}
-			
+
 			auto new_pos = apply_block_index(parent_pos);
 			Block_Head new_info;
 			Block_index new_data;
 			copy_block(&new_info, &new_data, new_pos);
 
 			int mid_pos = the_past_info.data_num / 2;
-			for (int p = mid_pos + 1, i = 0; p < the_past_info.data_num; ++p, ++i) 
+			for (int p = mid_pos + 1, i = 0; p < the_past_info.data_num; ++p, ++i)
 			{
-				if (the_past_data.inodes[p]._child == child_info._pos) 
+				if (the_past_data.inodes[p]._child == child_info._pos)
 				{
 					child_info._parent = new_pos;
 				}
@@ -301,6 +301,260 @@ namespace sjtu {
 			renew_block(&parent_info, &parent_data, parent_pos);
 			return true;
 		}
+
+
+		void change_index(int l_parent, int l_child, const Key& new_key)
+		{
+
+			Block_Head parent_info;
+			Block_index parent_data;
+			copy_block(&parent_info, &parent_data, l_parent);
+			if (parent_data.inodes[parent_info.data_num - 1]._child == l_child) {
+				change_index(parent_info._parent, l_parent, new_key);
+				return;
+			}
+			for (int cur_pos = parent_info.data_num - 2;; --cur_pos) {
+				if (parent_data.inodes[cur_pos]._child == l_child) {
+					parent_data.inodes[cur_pos]._key = new_key;
+					break;
+				}
+			}
+			renew_block(&parent_info, &parent_data, l_parent);
+		}
+
+
+		void merge_normal(Block_Head& l_info, Block_index& l_data, Block_Head& r_info, Block_index& r_data)
+		{
+			for (int p = l_info.data_num, i = 0; i < r_info.data_num; ++p, ++i)
+			{
+				l_data.inodes[p] = r_data.inodes[i];
+
+			}
+			l_data.inodes[l_info.data_num - 1]._key = adjust_normal(r_info._parent, r_info._pos);
+			l_info.data_num += r_info.data_num;
+			renew_block(&l_info, &l_data, l_info._pos);
+		}
+
+
+		void balance_normal(Block_Head& info, Block_index& index_data)
+		{
+			if (info.data_num >= index_node_len / 2) {
+				renew_block(&info, &index_data, info._pos);
+				return;
+			}
+
+			if (info._pos == bpfile_info.root_pos && info.data_num <= 1) {
+				bpfile_info.root_pos = index_data.inodes[0]._child;
+				renew_info();
+				return;
+			}
+			else if (info._pos == bpfile_info.root_pos) {
+				renew_block(&info, &index_data, info._pos);
+				return;
+			}
+
+			Block_Head parent_info, brother_info;
+			Block_index parent_data, brother_data;
+			copy_block(&parent_info, &parent_data, info._parent);
+			int value_pos;
+			for (value_pos = 0; parent_data.inodes[value_pos]._child != info._pos; ++value_pos);
+			if (value_pos > 0) {
+				copy_block(&brother_info, &brother_data, parent_data.inodes[value_pos - 1]._child);
+				brother_info._parent = info._parent;
+				if (brother_info.data_num > index_node_len / 2) {
+					for (int p = info.data_num; p > 0; --p) {
+						index_data.inodes[p] = index_data.inodes[p - 1];
+					}
+					index_data.inodes[0]._child = brother_data.inodes[brother_info.data_num - 1]._child;
+					index_data.inodes[0]._key = parent_data.inodes[value_pos - 1]._key;
+					parent_data.inodes[value_pos - 1]._key = brother_data.inodes[brother_info.data_num - 2]._key;
+					--brother_info.data_num;
+					++info.data_num;
+					renew_block(&brother_info, &brother_data, brother_info._pos);
+					renew_block(&info, &index_data, info._pos);
+					renew_block(&parent_info, &parent_data, parent_info._pos);
+					return;
+				}
+				else
+				{
+					merge_normal(brother_info, brother_data, info, index_data);
+					return;
+				}
+			}
+			if (value_pos < parent_info.data_num - 1) {
+				copy_block(&brother_info, &brother_data, parent_data.inodes[value_pos + 1]._child);
+				brother_info._parent = info._parent;
+				if (brother_info.data_num > index_node_len / 2)
+				{
+					index_data.inodes[info.data_num]._child = brother_data.inodes[0]._child;
+					index_data.inodes[info.data_num - 1]._key = parent_data.inodes[value_pos]._key;
+					parent_data.inodes[value_pos]._key = brother_data.inodes[0]._key;
+					for (int p = 1; p < brother_info.data_num; ++p)
+					{
+						brother_data.inodes[p - 1] = brother_data.inodes[p];
+					}
+					--brother_info.data_num;
+					++info.data_num;
+					renew_block(&brother_info, &brother_data, brother_info._pos);
+					renew_block(&info, &index_data, info._pos);
+					renew_block(&parent_info, &parent_data, parent_info._pos);
+					return;
+				}
+				else
+				{
+					merge_normal(info, index_data, brother_info, brother_data);
+					return;
+				}
+			}
+		}
+
+
+		Key adjust_normal(int pos, int removed_child)
+		{
+			Block_Head info;
+			Block_index normal_data;
+			copy_block(&info, &normal_data, pos);
+			int cur_pos;
+			for (cur_pos = 0; normal_data.inodes[cur_pos]._child != removed_child; ++cur_pos);
+			Key ans = normal_data.inodes[cur_pos - 1]._key;
+			normal_data.inodes[cur_pos - 1]._key = normal_data.inodes[cur_pos]._key;
+			for (; cur_pos < info.data_num - 1; ++cur_pos)
+			{
+				normal_data.inodes[cur_pos] = normal_data.inodes[cur_pos + 1];
+			}
+			--info.data_num;
+			balance_normal(info, normal_data);
+			return ans;
+		}
+
+
+		void merge_leaf(Block_Head& l_info, Block_leaf& l_data, Block_Head& r_info, Block_leaf& r_data)
+		{
+			for (int p = l_info.data_num, i = 0; i < r_info.data_num; ++p, ++i) {
+				l_data.inodes[p].first = r_data.inodes[i].first;
+				l_data.inodes[p].second = r_data.inodes[i].second;
+			}
+			l_info.data_num += r_info.data_num;
+			adjust_normal(r_info._parent, r_info._pos);
+
+			l_info._right = r_info._right;
+			Block_Head temp_info;
+			Block_leaf temp_data;
+			copy_block(&temp_info, &temp_data, r_info._right);
+			temp_info._left = l_info._pos;
+			renew_block(&temp_info, &temp_data, temp_info._pos);
+			renew_block(&l_info, &l_data, l_info._pos);
+		}
+
+
+		void balance_leaf(Block_Head& leaf_info, Block_leaf& leaf_data)
+		{
+			if (leaf_info.data_num >= leaf_node_len / 2) {
+				renew_block(&leaf_info, &leaf_data, leaf_info._pos);
+				return;
+			}
+			else if (leaf_info._pos == bpfile_info.root_pos) {
+				if (leaf_info.data_num == 0) {
+					Block_Head temp_info;
+					Block_leaf temp_data;
+					copy_block(&temp_info, &temp_data, bpfile_info.data_head);
+					temp_info._right = bpfile_info.data_rear;
+					renew_block(&temp_info, &temp_data, bpfile_info.data_head);
+					copy_block(&temp_info, &temp_data, bpfile_info.data_rear);
+					temp_info._left = bpfile_info.data_head;
+					renew_block(&temp_info, &temp_data, bpfile_info.data_rear);
+					return;
+				}
+				renew_block(&leaf_info, &leaf_data, leaf_info._pos);
+				return;
+			}
+
+			Block_Head brother_info, parent_info;
+			Block_leaf brother_data;
+			Block_index parent_data;
+
+			copy_block(&parent_info, &parent_data, leaf_info._parent);
+			int node_pos = 0;
+			for (; node_pos < parent_info.data_num; ++node_pos) {
+				if (parent_data.inodes[node_pos]._child == leaf_info._pos)
+					break;
+			}
+
+
+			if (node_pos > 0) {
+				copy_block(&brother_info, &brother_data, leaf_info._left);
+				brother_info._parent = leaf_info._parent;
+				if (brother_info.data_num > leaf_node_len / 2) {
+					for (int p = leaf_info.data_num; p > 0; --p) {
+						leaf_data.inodes[p].first = leaf_data.inodes[p - 1].first;
+						leaf_data.inodes[p].second = leaf_data.inodes[p - 1].second;
+					}
+					leaf_data.inodes[0].first = brother_data.inodes[brother_info.data_num - 1].first;
+					leaf_data.inodes[0].second = brother_data.inodes[brother_info.data_num - 1].second;
+					--brother_info.data_num;
+					++leaf_info.data_num;
+					change_index(brother_info._parent, brother_info._pos, leaf_data.inodes[0].first);
+					renew_block(&brother_info, &brother_data, brother_info._pos);
+					renew_block(&leaf_info, &leaf_data, leaf_info._pos);
+					return;
+				}
+				else {
+					merge_leaf(brother_info, brother_data, leaf_info, leaf_data);
+					//renew_block(&brother_info, &brother_data, brother_info._pos);
+					return;
+				}
+			}
+
+			if (node_pos < parent_info.data_num - 1) {
+				copy_block(&brother_info, &brother_data, leaf_info._right);
+				brother_info._parent = leaf_info._parent;
+				if (brother_info.data_num > leaf_node_len / 2) {
+					leaf_data.inodes[leaf_info.data_num].first = brother_data.inodes[0].first;
+					leaf_data.inodes[leaf_info.data_num].second = brother_data.inodes[0].second;
+					for (int p = 1; p < brother_info.data_num; ++p) {
+						brother_data.inodes[p - 1].first = brother_data.inodes[p].first;
+						brother_data.inodes[p - 1].second = brother_data.inodes[p].second;
+					}
+					++leaf_info.data_num;
+					--brother_info.data_num;
+					change_index(leaf_info._parent, leaf_info._pos, brother_data.inodes[0].first);
+					renew_block(&leaf_info, &leaf_data, leaf_info._pos);
+					renew_block(&brother_info, &brother_data, brother_info._pos);
+					return;
+				}
+				else {
+					merge_leaf(leaf_info, leaf_data, brother_info, brother_data);
+					//renew_block(&brother_info, &brother_data, brother_info._pos);
+					return;
+				}
+			}
+		}
+
+
+		void check_file() {
+			if (!bp_file) {
+
+				bp_file = fopen(_address, "wb+");
+				renew_info();
+
+				auto node_head = bpfile_info.block_num,
+					node_rear = bpfile_info.block_num + 1;
+
+				bpfile_info.data_head = node_head;
+				bpfile_info.data_rear = node_rear;
+
+				apply_block_leaf(0, 0, node_rear);
+				apply_block_leaf(0, node_head, 0);
+
+				return;
+			}
+			char buff[BLOCK_SIZE] = { 0 };
+			readin(buff, BLOCK_SIZE, 0);
+			memcpy(&bpfile_info, buff, sizeof(bpfile_info));
+		}
+
+
+
 
 	public:
 		typedef pair<const Key, Value> value_type;
@@ -367,16 +621,12 @@ namespace sjtu {
 			// And other methods in iterator, please fill by yourself.
 		};
 
-
-
-
-
 		// Default Constructor and Copy Constructor
-		BTree() 
+		BTree()
 		{
 			bp_file = fopen(_address, "rb+");
 			if (!bp_file) {
-				
+
 				bp_file = fopen(_address, "wb+");
 				renew_info();
 
@@ -394,21 +644,22 @@ namespace sjtu {
 			char info_container[BLOCK_SIZE] = { 0 };
 			readin(info_container, BLOCK_SIZE, 0);
 			memcpy(&bpfile_info, info_container, sizeof(bpfile_info));
-			
+
 		}
 
-		BTree(const BTree& other) 
+
+		BTree(const BTree& other)
 		{
 			bp_file = fopen(_address, "rb+");
 			bpfile_info.data_rear = other.bpfile_info.data_rear;
 			bpfile_info.root_pos = other.bpfile_info.root_pos;
 			bpfile_info.data_num = other.bpfile_info.data_num;
-		
+
 			bpfile_info.block_num = other.bpfile_info.block_num;
 			bpfile_info.data_head = other.bpfile_info.data_head;
 		}
 
-		BTree& operator=(const BTree& other) 
+		BTree& operator=(const BTree& other)
 		{
 			bp_file = fopen(_address, "rb+");
 			bpfile_info.block_num = other.bpfile_info.block_num;
@@ -424,12 +675,126 @@ namespace sjtu {
 		}
 
 		// Insert: Insert certain Key-Value into the database
-	    // Return a pair, the first of the pair is the iterator point to the new
-	    // element, the second of the pair is Success if it is successfully inserted
-		pair<iterator, OperationResult> insert(const Key& key, const Value& value) {
+		// Return a pair, the first of the pair is the iterator point to the new
+		// element, the second of the pair is Success if it is successfully inserted
 
+		pair<iterator, OperationResult> insert(const Key& key, const Value& value)
+		{
+			check_file();
+			if (empty())
+			{
+				auto root_pos = apply_block_leaf(0, bpfile_info.data_head, bpfile_info.data_rear);
+
+				Block_Head temp_info;
+				Block_leaf temp_data;
+
+				//é“¾æ¥head
+				copy_block(&temp_info, &temp_data, bpfile_info.data_head);
+				temp_info._right = root_pos;
+				renew_block(&temp_info, &temp_data, bpfile_info.data_head);
+
+				//é“¾æ¥rear
+				copy_block(&temp_info, &temp_data, bpfile_info.data_rear);
+				temp_info._left = root_pos;
+				renew_block(&temp_info, &temp_data, bpfile_info.data_rear);
+
+				//æ’å…¥pair
+				copy_block(&temp_info, &temp_data, root_pos);
+				++temp_info.data_num;
+				temp_data.inodes[0].first = key;
+				temp_data.inodes[0].second = value;
+				renew_block(&temp_info, &temp_data, root_pos);
+
+
+				//æ›´æ–°bpfile_info
+				++bpfile_info.data_num;
+				bpfile_info.root_pos = root_pos;
+				renew_info();
+
+				pair<iterator, OperationResult> result(begin(), Success);
+				return result;
+			}
+
+
+			//æŸ¥æ‰¾æ­£ç¡®çš„èŠ‚ç‚¹ä½ç½®
+			char buff[BLOCK_SIZE] = { 0 };
+			int cur_pos = bpfile_info.root_pos, cur_parent = 0;
+			while (true) {
+				readin(buff, BLOCK_SIZE, cur_pos);
+				Block_Head tmp;
+				memcpy(&tmp, buff, sizeof(tmp));
+
+				//åˆ¤æ–­çˆ¶äº²æ˜¯å¦æ›´æ–°
+				if (cur_parent != tmp._parent)
+				{
+					tmp._parent = cur_parent;
+					memcpy(buff, &tmp, sizeof(tmp));
+					writein(buff, BLOCK_SIZE, cur_pos);
+				}
+				if (tmp.isleaf)
+				{
+					break;
+				}
+
+				Block_index normal_data;
+				memcpy(&normal_data, buff + HEAD_SIZE, sizeof(normal_data));
+				int child_pos = tmp.data_num - 1;
+				for (; child_pos > 0; --child_pos) {
+					if (!(normal_data.inodes[child_pos - 1]._key > key)) {
+						break;
+					}
+				}
+				cur_parent = cur_pos;
+				cur_pos = normal_data.inodes[child_pos]._child;
+
+			}
+
+			Block_Head info;
+			memcpy(&info, buff, sizeof(info));
+			Block_leaf leaf_data;
+			memcpy(&leaf_data, buff + HEAD_SIZE, sizeof(leaf_data));
+			for (int value_pos = 0;; ++value_pos) {
+				if (value_pos < info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key))) {
+					//throw runtime_error();
+					return pair<iterator, OperationResult>(end(), Fail);
+				}
+				if (value_pos >= info.data_num || leaf_data.inodes[value_pos].first > key) {
+					//åœ¨æ­¤ç»“ç‚¹ä¹‹å‰æ’å…¥
+					if (info.data_num >= leaf_node_len) {
+						auto cur_key = split_leaf(cur_pos, info, leaf_data);
+						if (key > cur_key) {
+							cur_pos = info._right;
+							value_pos -= info.data_num;
+							copy_block(&info, &leaf_data, cur_pos);
+						}
+					}
+
+					for (int p = info.data_num - 1; p >= value_pos; --p) {
+						leaf_data.inodes[p + 1].first = leaf_data.inodes[p].first;
+						leaf_data.inodes[p + 1].second = leaf_data.inodes[p].second;
+						if (p == value_pos)
+							break;
+					}
+					leaf_data.inodes[value_pos].first = key;
+					leaf_data.inodes[value_pos].second = value;
+					++info.data_num;
+					renew_block(&info, &leaf_data, cur_pos);
+					iterator ans;
+					ans.block_info = info;
+					ans.cur_bptree = this;
+					ans.cur_pos = value_pos;
+					//ä¿®æ”¹æ ‘çš„åŸºæœ¬å‚æ•°
+					++bpfile_info.data_num;
+					renew_info();
+					pair<iterator, OperationResult> to_return(ans, Success);
+					return to_return;
+				}
+			}
+			return pair<iterator, OperationResult>(end(), Fail);
 		}
-			
+
+
+
 
 		// Erase: Erase the Key-Value
 		// Return Success if it is successfully erased
@@ -448,7 +813,7 @@ namespace sjtu {
 		const_iterator cend() const {}
 
 
-		bool empty() const 
+		bool empty() const
 		{
 			if (!bp_file)return true;
 
@@ -456,7 +821,7 @@ namespace sjtu {
 		}
 
 
-		int size() const 
+		int size() const
 		{
 			if (!bp_file) return 0;
 
@@ -469,12 +834,12 @@ namespace sjtu {
 			bp_file = NULL;
 			return;
 		}
-	
+
 
 
 
 		Value at(const Key& key) {
-			if (empty()) 
+			if (empty())
 			{
 				throw container_is_empty();
 			}
@@ -491,18 +856,18 @@ namespace sjtu {
 					memcpy(info_container, &tmp, sizeof(tmp));
 					writein(info_container, BLOCK_SIZE, cur_pos);
 				}
-				//ÕÒµ½Ò¶×Ó½Úµã
-				if (tmp.isleaf) 
+				//æ‰¾åˆ°å¶å­èŠ‚ç‚¹
+				if (tmp.isleaf)
 				{
 					break;
 				}
 
 				Block_index index_data;
 				memcpy(&index_data, info_container + HEAD_SIZE, sizeof(index_data));
-				//µ¹×ÅÕÒ£¬Ö±µ½ÕÒµ½±ÈÆäĞ¡µÄkeyÔòÆäºóÃæ¾ÍÊÇÄ¿±ê½Úµã
+				//å€’ç€æ‰¾ï¼Œç›´åˆ°æ‰¾åˆ°æ¯”å…¶å°çš„keyåˆ™å…¶åé¢å°±æ˜¯ç›®æ ‡èŠ‚ç‚¹
 
 				int child_pos = tmp.data_num - 1;
-				for (; child_pos > 0; --child_pos) 
+				for (; child_pos > 0; --child_pos)
 				{
 					if (!(index_data.inodes[child_pos - 1]._key > key))
 					{
@@ -517,7 +882,7 @@ namespace sjtu {
 			Block_leaf leaf_data;
 			memcpy(&leaf_data, info_container + HEAD_SIZE, sizeof(leaf_data));
 			for (int value_pos = 0;; ++value_pos) {
-				if (value_pos < head_info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key))) 
+				if (value_pos < head_info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key)))
 				{
 					return leaf_data.inodes[value_pos].second;
 				}
@@ -535,7 +900,7 @@ namespace sjtu {
 		size_t count(const Key& key) const
 		{
 			if (find(key) == cend())
-			return 0;
+				return 0;
 			return 1;
 		}
 		/**
