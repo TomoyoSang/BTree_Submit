@@ -13,25 +13,7 @@ namespace sjtu {
 	class BTree {
 	private:
 		// Your private members go here
-
-
-//文件部分
-		//文件头
-		class BPLUSFILES_INFO
-		{
-		public:
-			int block_num = 1;
-			int data_num = 0;
-			int data_head = 0;
-			int data_rear = 0;
-			int root_pos = 0;
-		};
-
-
-		//文件头声明
-		BPLUSFILES_INFO bpfile_info;
-
-		//块的开头部分
+//块的开头部分
 				//这是block的头，存储该块的基本信息，如是否为叶子、块内有多少数据等，，index和leaf共用这一种head
 		class Block_Head
 		{
@@ -54,6 +36,31 @@ namespace sjtu {
 		//leaf的构成成分就是pair
 
 
+		//这是BPtree的杂项数据信息：		
+		static const int BLOCK_SIZE = 4096;
+		static const int HEAD_SIZE = sizeof(Block_Head);
+		static const int index_node_len = (BLOCK_SIZE - HEAD_SIZE) / sizeof(Block_index_node);
+		static const int leaf_node_len = (BLOCK_SIZE - HEAD_SIZE) / (sizeof(Key) + sizeof(Value));
+
+
+//文件部分
+		//文件头
+		class BPLUSFILES_INFO
+		{
+		public:
+			int block_num = 1;
+			int data_num = 0;
+			int data_head = 0;
+			int data_rear = 0;
+			int root_pos = 0;
+		};
+
+
+		//文件头声明
+		BPLUSFILES_INFO bpfile_info;
+
+
+
 		//这是index的整体成分
 		class Block_index
 		{
@@ -66,14 +73,6 @@ namespace sjtu {
 		public:
 			pair<Key, Value>  inodes[leaf_node_len];
 		};
-
-		//这是BPtree的杂项数据信息：		
-		const int BLOCK_SIZE = 4096;
-		const int HEAD_SIZE = sizeof(Block_Head);
-		const int index_node_len = (BLOCK_SIZE - HEAD_SIZE) / sizeof(Block_index_node);
-		const int leaf_node_len = (BLOCK_SIZE - HEAD_SIZE) / (sizeof(Key) + sizeof(Value));
-
-
 
 		//内置函数部分：
 		//这是bptree的关键，写不好要被助教处理的！！！怖いです
@@ -780,9 +779,6 @@ namespace sjtu {
 					++info.data_num;
 					renew_block(&info, &leaf_data, cur_pos);
 					iterator ans;
-					ans.block_info = info;
-					ans.cur_bptree = this;
-					ans.cur_pos = value_pos;
 					//修改树的基本参数
 					++bpfile_info.data_num;
 					renew_info();
@@ -914,5 +910,4 @@ namespace sjtu {
 		const_iterator find(const Key& key) const {}
 	};
 
-	template <typename Key, typename Value, typename Compare> FILE* BTree<Key, Value, Compare>::bp_file = NULL;
 }  // namespace sjtu
