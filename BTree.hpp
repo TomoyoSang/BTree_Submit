@@ -43,8 +43,8 @@ namespace sjtu {
 		static const int leaf_node_len = (BLOCK_SIZE - HEAD_SIZE) / (sizeof(Key) + sizeof(Value));
 
 
-//文件部分
-		//文件头
+		//文件部分
+				//文件头
 		class BPLUSFILES_INFO
 		{
 		public:
@@ -74,34 +74,34 @@ namespace sjtu {
 			pair<Key, Value>  inodes[leaf_node_len];
 		};
 
-		//内置函数部分：
-		//这是bptree的关键，写不好要被助教处理的！！！怖いです
-		//頑張ってね！！！
-				//读取块：先将指针移动至目标部分，再进行固定长度读取
-		template <class T>
-		static void readin(T info_container, int info_container_size, int pos)
-		{
-			fseek(bp_file, info_container_size * pos, SEEK_SET);
-			fread(info_container, info_container_size, 1, bp_file);
-		}
+//内置函数部分：
+//这是bptree的关键，写不好要被助教处理的！！！怖いです
+//頑張ってね！！！
+//先皮一下，，，，，
 
-		//输入块：先将指针移动到指定位置，再输入，并用fflush保证输入全部进入文件，防止文件关闭而导致
-		template <class T>
-		static void writein(T info_container, int info_container_size, int pos)
-		{
-			fseek(bp_file, long(info_container_size * pos), SEEK_SET);
-			fwrite(info_container, info_container_size, 1, bp_file);
-			fflush(bp_file);
-		}
+//                ********
+//               ************
+//               ####....#.
+//            #..###.....##....
+//            ###.......######              ###            ###
+//               ...........               #...#          #...#
+//              ##*#######                 #.#.#          #.#.#
+//           ####*******######             #.#.#          #.#.#
+//          ...#***.****.*###....          #...#          #...#
+//          ....**********##.....           ###            ###
+//           ....****    *****....
+//             ####        ####
+//           ######        ######
+//##############################################################
+//#...#......#.##...#......#.##...#......#.##------------------#
+//###########################################------------------#
+//#..#....#....##..#....#....##..#....#....#####################
+//##########################################    #----------#
+//#.....#......##.....#......##.....#......#    #----------#
+//##########################################    #----------#
+//#.#..#....#..##.#..#....#..##.#..#....#..#    #----------#
+//##########################################    ############
 
-		//整块更新树的信息：从内存到外存
-		void renew_info()
-		{
-			fseek(bp_file, 0, SEEK_SET);
-			char info_container[BLOCK_SIZE] = { 0 };
-			memcpy(info_container, &bpfile_info, sizeof(bpfile_info));
-			writein(info_container, BLOCK_SIZE, 0);
-		}
 
 		//申请文件内空间，并把申请的可用地址用0 memset
 		int apply_memory()
@@ -120,6 +120,7 @@ namespace sjtu {
 			Block_Head tmp;
 			Block_index index_data;
 
+
 			tmp.isleaf = false;
 			tmp._parent = _parent;
 			tmp._pos = node_pos;
@@ -128,6 +129,7 @@ namespace sjtu {
 			renew_block(&tmp, &index_data, node_pos);
 			return node_pos;
 		}
+
 
 		//申请head和leaf，并进行初始化，返回该地址
 		int apply_block_leaf(int _parent, int _left, int _right)
@@ -147,8 +149,64 @@ namespace sjtu {
 			return node_pos;
 		}
 
+		//基操：
+	    //读取块：先将指针移动至目标部分，再进行固定长度读取
+		template <class T>
+		static void readin(T info_container, int info_container_size, int pos)
+		{
+			fseek(bp_file, info_container_size * pos, SEEK_SET);
+			fread(info_container, info_container_size, 1, bp_file);
+		}
+
+		//基操：
+		//输入块：先将指针移动到指定位置，再输入，并用fflush保证输入全部进入文件，防止文件关闭而导致
+		//输入不正常
+		template <class T>
+		static void writein(T info_container, int info_container_size, int pos)
+		{
+			fseek(bp_file, long(info_container_size * pos), SEEK_SET);
+			fwrite(info_container, info_container_size, 1, bp_file);
+			fflush(bp_file);
+		}
+
+		//基操：
+		//整块更新树的信息：从内存到外存
+		void renew_info()
+		{
+			fseek(bp_file, 0, SEEK_SET);
+			char info_container[BLOCK_SIZE] = { 0 };
+			memcpy(info_container, &bpfile_info, sizeof(bpfile_info));
+			writein(info_container, BLOCK_SIZE, 0);
+		}
+
+
+		//把在内存中head和index/leaf更新至文件
+		template <class T>
+		static void renew_block(Block_Head* _info, T* _data, int _pos)
+		{
+			char info_container[BLOCK_SIZE] = { 0 };
+			memcpy(info_container, _info, sizeof(Block_Head));
+			memcpy(info_container + HEAD_SIZE, _data, sizeof(T));
+			writein(info_container, BLOCK_SIZE, _pos);
+		}
+
+		//把_pos位置上的信息读入info_container,再分别转移到head和data里
+		//data可以是leaf或index
+		template <class T>
+		static void copy_block(Block_Head* _info, T* _data, int _pos)
+		{
+			char info_container[BLOCK_SIZE] = { 0 };
+			readin(info_container, BLOCK_SIZE, _pos);
+			memcpy(_info, info_container, sizeof(Block_Head));
+			memcpy(_data, info_container + HEAD_SIZE, sizeof(T));
+		}
+
+
+		
+
 		//插入新索引：
 		//在不超大小的情况下，将origin位置的key以及之后的都往后移一格，再把new_pos的_child和_key分别放到origin及它之后的位置 
+		//其中，the_past->'left'<new_index<the_past,the_past的_child>the_past前面一项的index;,故要把new_index放在the _past前面
 		void insert_indexnode(Block_Head& par_info, Block_index& par_data, int the_past, int new_pos, const Key& new_index)
 		{
 			++par_info.data_num;
@@ -163,89 +221,92 @@ namespace sjtu {
 			par_data.inodes[p + 1]._child = new_pos;
 		}
 
-		//把在内存创建好的head和index/leaf放入文件里
-		template <class T>
-		static void renew_block(Block_Head* _info, T* _data, int _pos)
-		{
-			char info_container[BLOCK_SIZE] = { 0 };
-			memcpy(info_container, _info, sizeof(Block_Head));
-			memcpy(info_container + HEAD_SIZE, _data, sizeof(T));
-			writein(info_container, BLOCK_SIZE, _pos);
-		}
 
-		//把_pos位置上的信息读入info_container,再分别转移到head和data里
-		template <class T>
-		static void copy_block(Block_Head* _info, T* _data, int _pos)
-		{
-			char info_container[BLOCK_SIZE] = { 0 };
-			readin(info_container, BLOCK_SIZE, _pos);
-			memcpy(_info, info_container, sizeof(Block_Head));
-			memcpy(_data, info_container + HEAD_SIZE, sizeof(T));
-		}
-
-		Key split_leaf(int pos, Block_Head& the_past_info, Block_leaf& the_past_data)
+		
+		//分裂叶子节点
+		Key split_block_leaf(int pos, Block_Head& the_past_info, Block_leaf& the_past_data)
 		{
 			int parent_pos;
 			Block_Head parent_info;
 			Block_index parent_data;
 
+			//首先索要父节点的信息
+
+			//如果是根节点
+			//在申请一个根节点
+			//理清节点之间的关系
 			if (pos == bpfile_info.root_pos)
 			{
-				auto root_pos = apply_block_index(0);
+				int root_pos = apply_block_index(0);
 				bpfile_info.root_pos = root_pos;
 				renew_info();
+				//简易版初始化
 				copy_block(&parent_info, &parent_data, root_pos);
 				the_past_info._parent = root_pos;
 				++parent_info.data_num;
 				parent_data.inodes[0]._child = pos;
 				parent_pos = root_pos;
 			}
+
+			//不是根节点的话
+			//索要父节点的信息
 			else
 			{
 				copy_block(&parent_info, &parent_data, the_past_info._parent);
 				parent_pos = parent_info._pos;
 			}
 
+
+			//如果父亲满了
+			//调用ifparent，直到找到没满的父亲
+			//在更新一下父亲的信息
 			if (ifparent(the_past_info))
 			{
 				parent_pos = the_past_info._parent;
 				copy_block(&parent_info, &parent_data, parent_pos);
 			}
 
-
-			auto new_pos = apply_block_leaf(parent_pos, pos, the_past_info._right);
+			//新申请一个叶子的块
+			int new_pos = apply_block_leaf(parent_pos, pos, the_past_info._right);
 			Block_Head new_info;
 			Block_leaf new_data;
 			copy_block(&new_info, &new_data, new_pos);
 
-
-			auto temp_pos = the_past_info._right;
+			//把原来右边的块的左兄弟更新
+			//虽然繁琐但也只能如此
+			int temp_pos = the_past_info._right;
 			Block_Head temp_info;
 			Block_leaf temp_data;
 			copy_block(&temp_info, &temp_data, temp_pos);
 			temp_info._left = new_pos;
 			renew_block(&temp_info, &temp_data, temp_pos);
 
+			//更新原块的右兄弟
 			the_past_info._right = new_pos;
 
+
 			int mid_pos = the_past_info.data_num >> 1;
+			//把p移到i去
 			for (int p = mid_pos, i = 0; p < the_past_info.data_num; ++p, ++i) {
 				new_data.inodes[i].first = the_past_data.inodes[p].first;
 				new_data.inodes[i].second = the_past_data.inodes[p].second;
+				//最保险的做法
 				++new_info.data_num;
 			}
+			//注意0-base
 			the_past_info.data_num = mid_pos;
 
 			insert_indexnode(parent_info, parent_data, pos, new_pos, the_past_data.inodes[mid_pos].first);
 
-
+			//更新外存
 			renew_block(&the_past_info, &the_past_data, pos);
 			renew_block(&new_info, &new_data, new_pos);
 			renew_block(&parent_info, &parent_data, parent_pos);
 
 			return new_data.inodes[0].first;
 		}
-
+		
+		//更改parent
 		bool ifparent(Block_Head& child_info)
 		{
 			int parent_pos, the_past_pos = child_info._parent;
@@ -254,6 +315,9 @@ namespace sjtu {
 			copy_block(&the_past_info, &the_past_data, the_past_pos);
 			if (the_past_info.data_num < index_node_len) return false;
 
+
+			//如果是根节点
+			//申请一个父亲吧
 			if (the_past_pos == bpfile_info.root_pos)
 			{
 
@@ -266,278 +330,74 @@ namespace sjtu {
 				parent_data.inodes[0]._child = the_past_pos;
 				parent_pos = root_pos;
 			}
+			//否则直接获取父亲信息
 			else
 			{
 				copy_block(&parent_info, &parent_data, the_past_info._parent);
 				parent_pos = parent_info._pos;
 			}
+
+			//如果父亲还是满的
+			//再往上找
+			//有必要的话找到根上重新要一个root_pos
 			if (ifparent(the_past_info))
 			{
 				parent_pos = the_past_info._parent;
 				copy_block(&parent_info, &parent_data, parent_pos);
 			}
 
+			//再申请一个block_index
 			auto new_pos = apply_block_index(parent_pos);
 			Block_Head new_info;
 			Block_index new_data;
 			copy_block(&new_info, &new_data, new_pos);
 
+
+			//
 			int mid_pos = the_past_info.data_num / 2;
 			for (int p = mid_pos + 1, i = 0; p < the_past_info.data_num; ++p, ++i)
 			{
+				//至少更新这条线上的_parent，insert_indexnode要用到的
 				if (the_past_data.inodes[p]._child == child_info._pos)
 				{
 					child_info._parent = new_pos;
 				}
-				std::swap(new_data.inodes[i], the_past_data.inodes[p]);
+
+				//通过swap转移
+				Key swap_key;
+				int swap_child = 0;
+				{
+					swap_key = new_data.inodes[i]._key;
+					new_data.inodes[i]._key = the_past_data.inodes[p]._key;
+					the_past_data.inodes[p]._key = swap_key;
+
+					
+					swap_child = new_data.inodes[i]._child;
+					new_data.inodes[i]._child = the_past_data.inodes[p]._child;
+					the_past_data.inodes[p]._child = swap_child;
+				}
 				++new_info.data_num;
 			}
 			the_past_info.data_num = mid_pos + 1;
 			insert_indexnode(parent_info, parent_data, the_past_pos, new_pos, the_past_data.inodes[mid_pos]._key);
 
+			//更新外存信息
 			renew_block(&the_past_info, &the_past_data, the_past_pos);
 			renew_block(&new_info, &new_data, new_pos);
 			renew_block(&parent_info, &parent_data, parent_pos);
 			return true;
 		}
+		
 
-
-		void change_index(int l_parent, int l_child, const Key& new_key)
-		{
-
-			Block_Head parent_info;
-			Block_index parent_data;
-			copy_block(&parent_info, &parent_data, l_parent);
-			if (parent_data.inodes[parent_info.data_num - 1]._child == l_child) {
-				change_index(parent_info._parent, l_parent, new_key);
-				return;
-			}
-			for (int cur_pos = parent_info.data_num - 2;; --cur_pos) {
-				if (parent_data.inodes[cur_pos]._child == l_child) {
-					parent_data.inodes[cur_pos]._key = new_key;
-					break;
-				}
-			}
-			renew_block(&parent_info, &parent_data, l_parent);
-		}
-
-
-		void merge_normal(Block_Head& l_info, Block_index& l_data, Block_Head& r_info, Block_index& r_data)
-		{
-			for (int p = l_info.data_num, i = 0; i < r_info.data_num; ++p, ++i)
+		void if_file() {
+			if (!bp_file) 
 			{
-				l_data.inodes[p] = r_data.inodes[i];
-
-			}
-			l_data.inodes[l_info.data_num - 1]._key = adjust_normal(r_info._parent, r_info._pos);
-			l_info.data_num += r_info.data_num;
-			renew_block(&l_info, &l_data, l_info._pos);
-		}
-
-
-		void balance_normal(Block_Head& info, Block_index& index_data)
-		{
-			if (info.data_num >= index_node_len / 2) {
-				renew_block(&info, &index_data, info._pos);
-				return;
-			}
-
-			if (info._pos == bpfile_info.root_pos && info.data_num <= 1) {
-				bpfile_info.root_pos = index_data.inodes[0]._child;
-				renew_info();
-				return;
-			}
-			else if (info._pos == bpfile_info.root_pos) {
-				renew_block(&info, &index_data, info._pos);
-				return;
-			}
-
-			Block_Head parent_info, brother_info;
-			Block_index parent_data, brother_data;
-			copy_block(&parent_info, &parent_data, info._parent);
-			int value_pos;
-			for (value_pos = 0; parent_data.inodes[value_pos]._child != info._pos; ++value_pos);
-			if (value_pos > 0) {
-				copy_block(&brother_info, &brother_data, parent_data.inodes[value_pos - 1]._child);
-				brother_info._parent = info._parent;
-				if (brother_info.data_num > index_node_len / 2) {
-					for (int p = info.data_num; p > 0; --p) {
-						index_data.inodes[p] = index_data.inodes[p - 1];
-					}
-					index_data.inodes[0]._child = brother_data.inodes[brother_info.data_num - 1]._child;
-					index_data.inodes[0]._key = parent_data.inodes[value_pos - 1]._key;
-					parent_data.inodes[value_pos - 1]._key = brother_data.inodes[brother_info.data_num - 2]._key;
-					--brother_info.data_num;
-					++info.data_num;
-					renew_block(&brother_info, &brother_data, brother_info._pos);
-					renew_block(&info, &index_data, info._pos);
-					renew_block(&parent_info, &parent_data, parent_info._pos);
-					return;
-				}
-				else
-				{
-					merge_normal(brother_info, brother_data, info, index_data);
-					return;
-				}
-			}
-			if (value_pos < parent_info.data_num - 1) {
-				copy_block(&brother_info, &brother_data, parent_data.inodes[value_pos + 1]._child);
-				brother_info._parent = info._parent;
-				if (brother_info.data_num > index_node_len / 2)
-				{
-					index_data.inodes[info.data_num]._child = brother_data.inodes[0]._child;
-					index_data.inodes[info.data_num - 1]._key = parent_data.inodes[value_pos]._key;
-					parent_data.inodes[value_pos]._key = brother_data.inodes[0]._key;
-					for (int p = 1; p < brother_info.data_num; ++p)
-					{
-						brother_data.inodes[p - 1] = brother_data.inodes[p];
-					}
-					--brother_info.data_num;
-					++info.data_num;
-					renew_block(&brother_info, &brother_data, brother_info._pos);
-					renew_block(&info, &index_data, info._pos);
-					renew_block(&parent_info, &parent_data, parent_info._pos);
-					return;
-				}
-				else
-				{
-					merge_normal(info, index_data, brother_info, brother_data);
-					return;
-				}
-			}
-		}
-
-
-		Key adjust_normal(int pos, int removed_child)
-		{
-			Block_Head info;
-			Block_index normal_data;
-			copy_block(&info, &normal_data, pos);
-			int cur_pos;
-			for (cur_pos = 0; normal_data.inodes[cur_pos]._child != removed_child; ++cur_pos);
-			Key ans = normal_data.inodes[cur_pos - 1]._key;
-			normal_data.inodes[cur_pos - 1]._key = normal_data.inodes[cur_pos]._key;
-			for (; cur_pos < info.data_num - 1; ++cur_pos)
-			{
-				normal_data.inodes[cur_pos] = normal_data.inodes[cur_pos + 1];
-			}
-			--info.data_num;
-			balance_normal(info, normal_data);
-			return ans;
-		}
-
-
-		void merge_leaf(Block_Head& l_info, Block_leaf& l_data, Block_Head& r_info, Block_leaf& r_data)
-		{
-			for (int p = l_info.data_num, i = 0; i < r_info.data_num; ++p, ++i) {
-				l_data.inodes[p].first = r_data.inodes[i].first;
-				l_data.inodes[p].second = r_data.inodes[i].second;
-			}
-			l_info.data_num += r_info.data_num;
-			adjust_normal(r_info._parent, r_info._pos);
-
-			l_info._right = r_info._right;
-			Block_Head temp_info;
-			Block_leaf temp_data;
-			copy_block(&temp_info, &temp_data, r_info._right);
-			temp_info._left = l_info._pos;
-			renew_block(&temp_info, &temp_data, temp_info._pos);
-			renew_block(&l_info, &l_data, l_info._pos);
-		}
-
-
-		void balance_leaf(Block_Head& leaf_info, Block_leaf& leaf_data)
-		{
-			if (leaf_info.data_num >= leaf_node_len / 2) {
-				renew_block(&leaf_info, &leaf_data, leaf_info._pos);
-				return;
-			}
-			else if (leaf_info._pos == bpfile_info.root_pos) {
-				if (leaf_info.data_num == 0) {
-					Block_Head temp_info;
-					Block_leaf temp_data;
-					copy_block(&temp_info, &temp_data, bpfile_info.data_head);
-					temp_info._right = bpfile_info.data_rear;
-					renew_block(&temp_info, &temp_data, bpfile_info.data_head);
-					copy_block(&temp_info, &temp_data, bpfile_info.data_rear);
-					temp_info._left = bpfile_info.data_head;
-					renew_block(&temp_info, &temp_data, bpfile_info.data_rear);
-					return;
-				}
-				renew_block(&leaf_info, &leaf_data, leaf_info._pos);
-				return;
-			}
-
-			Block_Head brother_info, parent_info;
-			Block_leaf brother_data;
-			Block_index parent_data;
-
-			copy_block(&parent_info, &parent_data, leaf_info._parent);
-			int node_pos = 0;
-			for (; node_pos < parent_info.data_num; ++node_pos) {
-				if (parent_data.inodes[node_pos]._child == leaf_info._pos)
-					break;
-			}
-
-
-			if (node_pos > 0) {
-				copy_block(&brother_info, &brother_data, leaf_info._left);
-				brother_info._parent = leaf_info._parent;
-				if (brother_info.data_num > leaf_node_len / 2) {
-					for (int p = leaf_info.data_num; p > 0; --p) {
-						leaf_data.inodes[p].first = leaf_data.inodes[p - 1].first;
-						leaf_data.inodes[p].second = leaf_data.inodes[p - 1].second;
-					}
-					leaf_data.inodes[0].first = brother_data.inodes[brother_info.data_num - 1].first;
-					leaf_data.inodes[0].second = brother_data.inodes[brother_info.data_num - 1].second;
-					--brother_info.data_num;
-					++leaf_info.data_num;
-					change_index(brother_info._parent, brother_info._pos, leaf_data.inodes[0].first);
-					renew_block(&brother_info, &brother_data, brother_info._pos);
-					renew_block(&leaf_info, &leaf_data, leaf_info._pos);
-					return;
-				}
-				else {
-					merge_leaf(brother_info, brother_data, leaf_info, leaf_data);
-					//renew_block(&brother_info, &brother_data, brother_info._pos);
-					return;
-				}
-			}
-
-			if (node_pos < parent_info.data_num - 1) {
-				copy_block(&brother_info, &brother_data, leaf_info._right);
-				brother_info._parent = leaf_info._parent;
-				if (brother_info.data_num > leaf_node_len / 2) {
-					leaf_data.inodes[leaf_info.data_num].first = brother_data.inodes[0].first;
-					leaf_data.inodes[leaf_info.data_num].second = brother_data.inodes[0].second;
-					for (int p = 1; p < brother_info.data_num; ++p) {
-						brother_data.inodes[p - 1].first = brother_data.inodes[p].first;
-						brother_data.inodes[p - 1].second = brother_data.inodes[p].second;
-					}
-					++leaf_info.data_num;
-					--brother_info.data_num;
-					change_index(leaf_info._parent, leaf_info._pos, brother_data.inodes[0].first);
-					renew_block(&leaf_info, &leaf_data, leaf_info._pos);
-					renew_block(&brother_info, &brother_data, brother_info._pos);
-					return;
-				}
-				else {
-					merge_leaf(leaf_info, leaf_data, brother_info, brother_data);
-					//renew_block(&brother_info, &brother_data, brother_info._pos);
-					return;
-				}
-			}
-		}
-
-
-		void check_file() {
-			if (!bp_file) {
-
+				//新建一个文件
 				bp_file = fopen(_address, "wb+");
 				renew_info();
 
-				auto node_head = bpfile_info.block_num,
-					node_rear = bpfile_info.block_num + 1;
+				int node_head = bpfile_info.block_num;
+				int node_rear = bpfile_info.block_num + 1;
 
 				bpfile_info.data_head = node_head;
 				bpfile_info.data_rear = node_rear;
@@ -547,9 +407,9 @@ namespace sjtu {
 
 				return;
 			}
-			char buff[BLOCK_SIZE] = { 0 };
-			readin(buff, BLOCK_SIZE, 0);
-			memcpy(&bpfile_info, buff, sizeof(bpfile_info));
+			char info_container[BLOCK_SIZE] = { 0 };
+			readin(info_container, BLOCK_SIZE, 0);
+			memcpy(&bpfile_info, info_container, sizeof(bpfile_info));
 		}
 
 
@@ -623,7 +483,9 @@ namespace sjtu {
 		// Default Constructor and Copy Constructor
 		BTree()
 		{
+			//如果文件不存在先报错
 			bp_file = fopen(_address, "rb+");
+			//文件不存在才创建的
 			if (!bp_file) {
 
 				bp_file = fopen(_address, "wb+");
@@ -635,13 +497,17 @@ namespace sjtu {
 				bpfile_info.data_head = node_head;
 				bpfile_info.data_rear = node_rear;
 
+				//把head和rear挂在0位上，
 				apply_block_leaf(0, 0, node_rear);
 				apply_block_leaf(0, node_head, 0);
 
 				return;
 			}
+
+
 			char info_container[BLOCK_SIZE] = { 0 };
 			readin(info_container, BLOCK_SIZE, 0);
+			//领略到了struct的神奇之处！！原来是连续的！！！！
 			memcpy(&bpfile_info, info_container, sizeof(bpfile_info));
 
 		}
@@ -653,7 +519,6 @@ namespace sjtu {
 			bpfile_info.data_rear = other.bpfile_info.data_rear;
 			bpfile_info.root_pos = other.bpfile_info.root_pos;
 			bpfile_info.data_num = other.bpfile_info.data_num;
-
 			bpfile_info.block_num = other.bpfile_info.block_num;
 			bpfile_info.data_head = other.bpfile_info.data_head;
 		}
@@ -668,8 +533,8 @@ namespace sjtu {
 			bpfile_info.data_num = other.bpfile_info.data_num;
 			return *this;
 		}
-		~BTree() {
-
+		~BTree() 
+		{
 			fclose(bp_file);
 		}
 
@@ -679,7 +544,9 @@ namespace sjtu {
 
 		pair<iterator, OperationResult> insert(const Key& key, const Value& value)
 		{
-			check_file();
+			if_file();
+			//树为空
+			//直接插入
 			if (empty())
 			{
 				auto root_pos = apply_block_leaf(0, bpfile_info.data_head, bpfile_info.data_rear);
@@ -715,28 +582,31 @@ namespace sjtu {
 			}
 
 
-			//查找正确的节点位置
-			char buff[BLOCK_SIZE] = { 0 };
+			//如果树不为空
+			//从根开始向下查找正确的节点位置
+			//和at套路有点相似
+			char info_container[BLOCK_SIZE] = { 0 };
 			int cur_pos = bpfile_info.root_pos, cur_parent = 0;
 			while (true) {
-				readin(buff, BLOCK_SIZE, cur_pos);
+				readin(info_container, BLOCK_SIZE, cur_pos);
 				Block_Head tmp;
-				memcpy(&tmp, buff, sizeof(tmp));
+				memcpy(&tmp, info_container, sizeof(tmp));
 
 				//判断父亲是否更新
 				if (cur_parent != tmp._parent)
 				{
 					tmp._parent = cur_parent;
-					memcpy(buff, &tmp, sizeof(tmp));
-					writein(buff, BLOCK_SIZE, cur_pos);
+					memcpy(info_container, &tmp, sizeof(tmp));
+					writein(info_container, BLOCK_SIZE, cur_pos);
 				}
+				//是叶子就跳出来
 				if (tmp.isleaf)
 				{
 					break;
 				}
 
 				Block_index normal_data;
-				memcpy(&normal_data, buff + HEAD_SIZE, sizeof(normal_data));
+				memcpy(&normal_data, info_container + HEAD_SIZE, sizeof(normal_data));
 				int child_pos = tmp.data_num - 1;
 				for (; child_pos > 0; --child_pos) {
 					if (!(normal_data.inodes[child_pos - 1]._key > key)) {
@@ -749,33 +619,43 @@ namespace sjtu {
 			}
 
 			Block_Head info;
-			memcpy(&info, buff, sizeof(info));
+			memcpy(&info, info_container, sizeof(info));
 			Block_leaf leaf_data;
-			memcpy(&leaf_data, buff + HEAD_SIZE, sizeof(leaf_data));
-			for (int value_pos = 0;; ++value_pos) {
-				if (value_pos < info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key))) {
-					//throw runtime_error();
+			memcpy(&leaf_data, info_container + HEAD_SIZE, sizeof(leaf_data));
+
+			for (int value_pos = 0;; ++value_pos) 
+			{
+				//有重复
+				if (value_pos < info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key))) 
+				{
 					return pair<iterator, OperationResult>(end(), Fail);
 				}
+				
 				if (value_pos >= info.data_num || leaf_data.inodes[value_pos].first > key) {
 					//在此结点之前插入
-					if (info.data_num >= leaf_node_len) {
-						auto cur_key = split_leaf(cur_pos, info, leaf_data);
-						if (key > cur_key) {
+					if (info.data_num >= leaf_node_len) 
+					{
+						auto cur_key = split_block_leaf(cur_pos, info, leaf_data);
+						if (key > cur_key)
+						{
 							cur_pos = info._right;
 							value_pos -= info.data_num;
 							copy_block(&info, &leaf_data, cur_pos);
 						}
 					}
 
-					for (int p = info.data_num - 1; p >= value_pos; --p) {
+					//全部向后挪移一格
+					for (int p = info.data_num - 1; p >= value_pos; --p)
+					{
 						leaf_data.inodes[p + 1].first = leaf_data.inodes[p].first;
 						leaf_data.inodes[p + 1].second = leaf_data.inodes[p].second;
 						if (p == value_pos)
 							break;
 					}
+
 					leaf_data.inodes[value_pos].first = key;
 					leaf_data.inodes[value_pos].second = value;
+
 					++info.data_num;
 					renew_block(&info, &leaf_data, cur_pos);
 					iterator ans;
@@ -798,6 +678,8 @@ namespace sjtu {
 		OperationResult erase(const Key& key) {
 			// TODO erase function
 			return Fail;  // If you can't finish erase part, just remaining here.
+			
+			//i failed，，，，
 		}
 
 
@@ -827,18 +709,17 @@ namespace sjtu {
 
 		void clear()
 		{
+			remove(_address);
 			bp_file = NULL;
 			return;
 		}
-
-
-
 
 		Value at(const Key& key) {
 			if (empty())
 			{
 				throw container_is_empty();
 			}
+
 			char info_container[BLOCK_SIZE] = { 0 };
 			int cur_pos = bpfile_info.root_pos, cur_parent = 0;
 			while (true)
@@ -847,12 +728,15 @@ namespace sjtu {
 				Block_Head tmp;
 				memcpy(&tmp, info_container, sizeof(tmp));
 
+				//看看有没有未更新的信息
 				if (cur_parent != tmp._parent) {
 					tmp._parent = cur_parent;
 					memcpy(info_container, &tmp, sizeof(tmp));
 					writein(info_container, BLOCK_SIZE, cur_pos);
 				}
-				//找到叶子节点
+
+
+				//找到对应叶子节点
 				if (tmp.isleaf)
 				{
 					break;
@@ -860,8 +744,8 @@ namespace sjtu {
 
 				Block_index index_data;
 				memcpy(&index_data, info_container + HEAD_SIZE, sizeof(index_data));
-				//倒着找，直到找到比其小的key则其后面就是目标节点
 
+				//倒着找，直到找到比其小的key则其后面就是目标节点
 				int child_pos = tmp.data_num - 1;
 				for (; child_pos > 0; --child_pos)
 				{
@@ -873,11 +757,14 @@ namespace sjtu {
 				cur_pos = index_data.inodes[child_pos]._child;
 
 			}
+
 			Block_Head head_info;
 			memcpy(&head_info, info_container, sizeof(head_info));
 			Block_leaf leaf_data;
 			memcpy(&leaf_data, info_container + HEAD_SIZE, sizeof(leaf_data));
-			for (int value_pos = 0;; ++value_pos) {
+
+			for (int value_pos = 0;; ++value_pos) 
+			{
 				if (value_pos < head_info.data_num && (!(leaf_data.inodes[value_pos].first<key || leaf_data.inodes[value_pos].first>key)))
 				{
 					return leaf_data.inodes[value_pos].second;
